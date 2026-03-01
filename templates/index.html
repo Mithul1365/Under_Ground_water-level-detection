@@ -1,0 +1,442 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Groundwater Level Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            background-color: #f8f9fa;
+        }
+        .header {
+            width: 100%;
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .header img {
+            height: 50px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header-center {
+            margin-left: 300px;
+            font-size: large; 
+            font-family: Arial, Helvetica, sans-serif;/* Adjust to move it slightly right of the logo */
+            
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            color: #007bff;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 1.4em; /* Updated font size to be slightly bigger */
+            color: #555;
+            font-weight: normal;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        .main-container {
+            flex-grow: 1;
+            display: flex;
+            width: 100%;
+            overflow: hidden;
+        }
+        #map {
+            flex-grow: 1;
+            height: 100%;
+        }
+        .dashboard {
+            flex-basis: 400px;
+            background-color: #2a2a2a;
+            display: flex;
+            height: 100%;
+            padding: 0;
+            box-sizing: border-box;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.4);
+            border-radius: 10px;
+        }
+        .left-sidebar {
+            width: 50px;
+            background-color: #2f2f2f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+            gap: 15px;
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+        .left-sidebar .icon-button {
+            background: none;
+            border: none;
+            color: #eee;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+        .left-sidebar .icon-button:hover {
+            background-color: #444;
+        }
+        .left-sidebar input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 5px;
+            border: 1px solid #555;
+            background-color: #444;
+            color: #eee;
+            border-radius: 5px;
+            outline: none;
+            font-size: 0.8em;
+        }
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #2a2a2a;
+            color: #fff;
+            overflow: hidden;
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+        .chat-header {
+            padding: 15px;
+            background-color: #2f2f2f;
+            border-bottom: 1px solid #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .chat-header h3 {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bold;
+            color: #eee;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 80%;
+            word-wrap: break-word;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .message.user {
+            background-color: #007bff;
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        .message.bot {
+            background-color: #444;
+            color: #eee;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        .initial-message {
+            align-self: center;
+            text-align: center;
+            margin: auto;
+            background-color: transparent;
+        }
+        .chat-input {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-top: 1px solid #444;
+            background-color: #2f2f2f;
+            border-bottom-right-radius: 10px;
+        }
+        .input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+        .chat-input input {
+            flex-grow: 1;
+            border: 1px solid #555;
+            background-color: #444;
+            color: #eee;
+            border-radius: 25px;
+            padding: 10px 15px;
+            outline: none;
+            font-size: 1em;
+            padding-left: 110px;
+        }
+        .chat-input .chat-button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .chat-input .chat-button:hover {
+            background-color: #0056b3;
+        }
+        .history-button {
+            background-color: #6c757d;
+        }
+        .history-button:hover {
+            background-color: #5a6268;
+        }
+        .input-icon {
+            position: absolute;
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 1.2em;
+            cursor: pointer;
+            padding: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        .input-icon:hover {
+            color: #eee;
+        }
+        #add-button {
+            left: 15px;
+        }
+        #tools-button {
+            left: 45px;
+        }
+        #mic-button {
+            left: 80px;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+        .leaflet-popup-content strong {
+            color: #007bff;
+        }
+        .graph-container {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <img src="C:\Users\OMEN\OneDrive\Desktop\New folder (3)\IMG_5505.PNG" alt="Your Logo">
+            <h1>JAL DRISHTI</h1>
+        </div>
+        <div class="header-center">
+            <h2><b>Groundwater Dashboard</b></h2>
+        </div>
+    </div>
+    <div class="main-container">
+        <div id="map"></div>
+        <div class="dashboard">
+            <div class="left-sidebar">
+                <button class="icon-button">☰</button>
+                <input type="text" placeholder="Search...">
+                <button class="icon-button">🔎</button>
+            </div>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>JAL DRISHTI</h3>
+                </div>
+                <div class="chat-messages" id="chat-messages">
+                    </div>
+                <div class="chat-input">
+                    <button id="history-button" class="chat-button history-button">History</button>
+                    <div class="input-wrapper">
+                        <button id="add-button" class="input-icon">+</button>
+                        <button id="tools-button" class="input-icon">⚙️</button>
+                        <button id="mic-button" class="input-icon">🎤</button>
+                        <input type="text" id="chat-input" placeholder="Type a message...">
+                    </div>
+                    <button id="send-button" class="chat-button">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([12.97, 77.59], 8);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        function loadMapMarkers() {
+            fetch('/map_data')
+                .then(res => res.json())
+                .then(points => {
+                    points.forEach(p => {
+                        const status = p.water_level < p.threshold ? '🚨 ALERT' : '✅ OK';
+                        const popup = `
+                            <strong>Station:</strong> ${p.station}<br/>
+                            <strong>District:</strong> ${p.district}<br/>
+                            <strong>Water Level:</strong> ${p.water_level} mbgl<br/>
+                            <strong>Threshold:</strong> ${p.threshold} mbgl<br/>
+                            <strong>Status:</strong> ${status}<br/>
+                            <strong>Date & Time:</strong> ${p.datetime}
+                        `;
+                        L.marker([p.lat, p.lon]).addTo(map).bindPopup(popup);
+                    });
+                })
+                .catch(err => console.error('Error loading map data:', err));
+        }
+        loadMapMarkers();
+
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const historyButton = document.getElementById('history-button');
+        const micButton = document.getElementById('mic-button');
+        const addButton = document.getElementById('add-button');
+        const toolsButton = document.getElementById('tools-button');
+        const chatMessages = document.getElementById('chat-messages');
+
+        function renderMessage(message, isInitial = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = message.user ? 'message user' : 'message bot';
+            
+            if (isInitial) {
+                messageDiv.className += ' initial-message';
+            }
+            
+            if (message.type === 'historical_graph') {
+                const graphContainer = document.createElement('div');
+                graphContainer.className = 'graph-container';
+                graphContainer.innerHTML = `<p style="color: #333; font-weight: bold; margin-bottom: 5px;">Historical Data for ${message.text.station.toUpperCase()}:</p><canvas id="historicalChart"></canvas>`;
+                messageDiv.appendChild(graphContainer);
+                
+                chatMessages.appendChild(messageDiv);
+                
+                const ctx = document.getElementById('historicalChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: message.text.dates,
+                        datasets: [{
+                            label: 'Water Level (mbgl)',
+                            data: message.text.values,
+                            borderColor: '#007bff',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Water Level (mbgl)'
+                                },
+                                reverse: true
+                            }
+                        }
+                    }
+                });
+            } else {
+                messageDiv.textContent = message.text;
+                chatMessages.appendChild(messageDiv);
+            }
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function loadHistory() {
+            chatMessages.innerHTML = '';
+            fetch('/get_messages')
+                .then(res => res.json())
+                .then(messages => {
+                    messages.forEach(msg => {
+                        renderMessage(msg);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading chat history:', err);
+                    //renderMessage({ text: 'Sorry, I am unable to load chat history.', user: false });
+                });
+        }
+        
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            renderMessage({ text: text, user: true });
+            chatInput.value = '';
+            
+            fetch('/send_message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            }).then(res => res.json())
+                .then(data => {
+                    renderMessage(data);
+                })
+                .catch(err => {
+                    console.error('Error sending message:', err);
+                    renderMessage({ text: 'Sorry, I am unable to connect to the server.', user: false });
+                });
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        historyButton.addEventListener('click', loadHistory);
+        micButton.addEventListener('click', () => {
+            console.log('Mic button clicked!');
+        });
+        addButton.addEventListener('click', () => {
+            console.log('Add button clicked!');
+        });
+        toolsButton.addEventListener('click', () => {
+            console.log('Tools button clicked!');
+        });
+
+        loadHistory();
+        if (chatMessages.children.length === 0) {
+            renderMessage({ text: 'Hello! How can I help you today? You can ask about a station\'s water level, threshold, or historical data.', user: false }, true);
+        }
+    </script>
+</body>
+</html>
